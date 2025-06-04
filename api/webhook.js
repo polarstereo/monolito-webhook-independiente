@@ -95,6 +95,17 @@ export default async function handler(req, res) {
 
       user = newUser;
       console.log('✅ Usuario creado:', user.id);
+
+      const { error: authError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
+
+      if (authError && authError.message !== 'User already registered') {
+        console.error('⚠️ Error al crear usuario en auth:', authError.message);
+      } else {
+        console.log('✅ Usuario creado también en auth.users');
+      }
     } else {
       console.log('👤 Usuario ya existía:', user.id);
     }
