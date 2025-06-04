@@ -45,6 +45,8 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data?.object;
+    console.log("🧾 session completa:");
+    console.dir(session, { depth: null });
 
     const email = session?.customer_details?.email;
     const productId = session?.client_reference_id;
