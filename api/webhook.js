@@ -41,9 +41,11 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
+  console.log('✅ Evento recibido:', event.type);
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log('🧾 Sesión recibida:', session);
+    console.log('🧾 Sesión recibida:', JSON.stringify(session, null, 2));
 
     const email = session.customer_details?.email;
     const productId = session.metadata?.product_id?.trim();
@@ -55,7 +57,6 @@ export default async function handler(req, res) {
 
     console.log('📥 Creando o buscando usuario con email:', email);
 
-    // 1. Buscar membresía
     const { data: membresias, error: errorMembresia } = await supabase
       .from('membresias')
       .select('*')
@@ -68,14 +69,12 @@ export default async function handler(req, res) {
       return res.status(404).send('Membresía no encontrada');
     }
 
-    // 2. Buscar usuario
     let { data: user } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
       .maybeSingle();
 
-    // 3. Si no existe, crearlo
     if (!user) {
       const { data: newUser, error: insertUserError } = await supabase
         .from('users')
@@ -90,9 +89,10 @@ export default async function handler(req, res) {
 
       user = newUser;
       console.log('✅ Usuario creado:', user.id);
+    } else {
+      console.log('👤 Usuario ya existía con ID:', user.id);
     }
 
-    // 4. Insertar vínculo con membresía
     const { error: insertError } = await supabase.from('usuario_membresias').insert([
       {
         usuario_id: user.id,
@@ -107,7 +107,10 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Membresía asignada correctamente.');
+  } else {
+    console.log('⚠️ Evento recibido no es checkout.session.completed');
   }
 
+  console.log('📦 Fin del flujo de webhook');
   res.status(200).json({ received: true });
 }
