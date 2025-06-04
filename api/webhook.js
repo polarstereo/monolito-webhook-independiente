@@ -7,17 +7,17 @@ export const config = {
   },
 };
 
-const stripe = new Stripe("sk_test_...", {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).end('Method Not Allowed');
+    return res.status(405).send('Method Not Allowed');
   }
 
   const sig = req.headers['stripe-signature'];
-  const secret = 'whsec_...';
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let buf;
   try {
