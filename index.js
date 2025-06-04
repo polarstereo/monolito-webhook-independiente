@@ -1,16 +1,21 @@
+console.log("🧾 Este es el index.js correcto");
+
 const express = require('express');
-const Stripe = require('stripe');
 const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
 
 const app = express();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
-});
 
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2023-10-16'
+  });
+
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
 
+  console.log("🔐 STRIPE_SECRET_KEY =", process.env.STRIPE_SECRET_KEY || "undefined");
   console.log("🔐 STRIPE_WEBHOOK_SECRET =", secret || "undefined");
 
   let event;
