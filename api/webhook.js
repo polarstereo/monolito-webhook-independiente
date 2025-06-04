@@ -8,10 +8,10 @@ export const config = {
   },
 };
 
-// ✅ Claves de entorno
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
@@ -41,7 +41,6 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // ✅ Evento recibido y verificado
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     console.log('🧾 Sesión recibida:', session);
@@ -53,6 +52,8 @@ export default async function handler(req, res) {
       console.error('❌ Faltan datos del usuario o producto');
       return res.status(400).send('Missing metadata');
     }
+
+    console.log('📥 Creando o buscando usuario con email:', email);
 
     // 1. Buscar membresía
     const { data: membresias, error: errorMembresia } = await supabase
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
       return res.status(404).send('Membresía no encontrada');
     }
 
-    // 2. Buscar usuario en tabla de aplicación
+    // 2. Buscar usuario
     let { data: user } = await supabase
       .from('users')
       .select('*')
@@ -76,12 +77,19 @@ export default async function handler(req, res) {
 
     // 3. Si no existe, crearlo
     if (!user) {
-      const { data: newUser } = await supabase
+      const { data: newUser, error: insertUserError } = await supabase
         .from('users')
         .insert([{ email, rol: 'estudiante' }])
         .select()
         .single();
+
+      if (insertUserError) {
+        console.error('❌ Error al crear usuario:', insertUserError.message);
+        return res.status(500).send('No se pudo crear el usuario');
+      }
+
       user = newUser;
+      console.log('✅ Usuario creado:', user.id);
     }
 
     // 4. Insertar vínculo con membresía
