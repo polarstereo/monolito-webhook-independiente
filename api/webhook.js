@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   try {
     buf = await buffer(req);
   } catch (err) {
-    console.error('❌ Error al leer el buffer:', err.message);
+    console.error('Error al leer el buffer:', err.message);
     return res.status(400).send('Invalid body');
   }
 
@@ -37,11 +37,11 @@ export default async function handler(req, res) {
   try {
     event = stripe.webhooks.constructEvent(buf, sig, secret);
   } catch (err) {
-    console.error('❌ Verificación fallida:', err.message);
+    console.error('Verificacion fallida:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log('✅ Evento recibido:', event.type);
+  console.log('Evento recibido:', event.type);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data?.object;
@@ -49,7 +49,87 @@ export default async function handler(req, res) {
     const email = session?.customer_details?.email;
     const productId = session?.client_reference_id;
 
-    console.log("🧾 session completa:");
+    console.log("Session completa:");
     console.dir(session, { depth: null });
 
-    console.log("📩 Dato
+    console.log("Datos recibidos:");
+    console.log(" - Email:", email);
+    console.log(" - Producto ID:", productId);
+
+    if (!email || !productId) {
+      console.error('Faltan datos del usuario o producto');
+      return res.status(400).send('Missing metadata');
+    }
+
+    const { data: membresias, error: errorMembresia } = await supabase
+      .from('membresias')
+      .select('*')
+      .ilike('stripe_product_id', productId);
+
+    console.log("Resultado membresias:", membresias);
+    if (errorMembresia) console.error("Error membresia:", errorMembresia.message);
+
+    const membresia = membresias?.[0];
+    if (!membresia) {
+      console.error('Membresia no encontrada:', productId);
+      return res.status(404).send('Membresia no encontrada');
+    }
+
+    let { data: user } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (!user) {
+      const { data: newUser, error } = await supabase
+        .from('users')
+        .insert([{ email, rol: 'estudiante' }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error al crear usuario en tabla users:', error.message);
+        return res.status(500).send('No se pudo crear el usuario');
+      }
+
+      user = newUser;
+      console.log('Usuario creado en tabla users:', user.id);
+
+      console.log('Intentando crear usuario en auth.users:', email);
+      const { error: authError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
+
+      if (authError && authError.message !== 'User already registered') {
+        console.error('Error al crear usuario en auth:', authError.message);
+      } else {
+        console.log('Usuario creado en auth.users o ya existia');
+      }
+    } else {
+      console.log('Usuario ya existia en tabla users:', user.id);
+    }
+
+    const { error: insertError } = await supabase
+      .from('usuario_membresias')
+      .insert([
+        {
+          usuario_id: user.id,
+          membresia_id: membresia.id,
+          horas_disponibles: membresia.horas_semanales,
+        },
+      ]);
+
+    if (insertError) {
+      console.error('Error al asignar membresia:', insertError.message);
+      return res.status(500).send('No se pudo asignar membresia');
+    }
+
+    console.log('Membresia asignada correctamente.');
+  } else {
+    console.log('Evento ignorado:', event.type);
+  }
+
+  res.status(200).json({ received: true });
+}
