@@ -9,10 +9,8 @@ const app = express();
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
-  console.log("🌍 TODAS LAS VARIABLES DE ENTORNO:");
-  console.log(process.env); // 👈 Aquí imprimimos todo el entorno
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  // 🚨 Reemplaza esta línea con tu clave real solo para pruebas
+  const stripe = new Stripe("sk_test_51RVh53Gh4KFKDlTwH5C31rBIW1qaOGAqn0iT0TV9g0IKQAEg9c1h2ZUbI4a8q2NrBckFEqMPnNbQyFZ8S6TVk4S700OKwwlmMD", {
     apiVersion: '2023-10-16'
   });
 
