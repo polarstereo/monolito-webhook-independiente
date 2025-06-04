@@ -2,20 +2,20 @@ console.log("🧾 Este es el index.js correcto");
 
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const Stripe = require('stripe');
-
 const app = express();
 
+// Middleware para manejar el cuerpo de la solicitud como texto sin procesar
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
-console.log("🔥 STRIPE_SECRET_KEY recibido:", process.env.STRIPE_SECRET_KEY || "undefined");
+  console.log("🔥 DEBUG process.env.STRIPE_SECRET_KEY =", process.env.STRIPE_SECRET_KEY);
 
+  // Inicializar Stripe dentro del manejador de la ruta
+  const Stripe = require('stripe');
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2023-10-16'
   });
 
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-
   console.log("🔐 STRIPE_SECRET_KEY =", process.env.STRIPE_SECRET_KEY || "undefined");
   console.log("🔐 STRIPE_WEBHOOK_SECRET =", secret || "undefined");
 
@@ -24,7 +24,7 @@ console.log("🔥 STRIPE_SECRET_KEY recibido:", process.env.STRIPE_SECRET_KEY ||
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, secret);
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
+    console.error('❌ Falló la verificación de la firma del webhook:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -32,7 +32,7 @@ console.log("🔥 STRIPE_SECRET_KEY recibido:", process.env.STRIPE_SECRET_KEY ||
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log('🧾 Checkout session recibida:', JSON.stringify(session, null, 2));
+    console.log('🧾 Sesión de checkout recibida:', JSON.stringify(session, null, 2));
 
     const customerEmail = session.customer_details?.email;
     const productId = session.metadata?.product_id?.trim();
@@ -95,6 +95,7 @@ console.log("🔥 STRIPE_SECRET_KEY recibido:", process.env.STRIPE_SECRET_KEY ||
   res.status(200).json({ received: true });
 });
 
+// Middleware para manejar JSON en otras rutas
 app.use(express.json());
 
 const getSupabaseClient = () => {
