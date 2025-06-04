@@ -43,32 +43,29 @@ export default async function handler(req, res) {
 
   console.log('✅ Evento recibido:', event.type);
 
-  if (event.type === 'checkout.session.completed') {
+  // 👇 Solo si el tipo es exactamente el que queremos
+  if (event?.type === 'checkout.session.completed') {
     const session = event.data.object;
 
-    console.log("📩 Datos importantes recibidos:");
-    console.log("  - Email:", session?.customer_details?.email);
-    console.log("  - Producto ID:", session?.metadata?.product_id);
-    console.log("  - Customer ID:", session?.customer);
+    const email = session?.customer_details?.email;
+    const productId = session?.metadata?.product_id?.trim();
 
-    const email = session.customer_details?.email;
-    const productId = session.metadata?.product_id?.trim();
+    console.log("📩 Datos recibidos:");
+    console.log(" - Email:", email);
+    console.log(" - Producto ID:", productId);
 
     if (!email || !productId) {
       console.error('❌ Faltan datos del usuario o producto');
       return res.status(400).send('Missing metadata');
     }
 
-    console.log('📥 Creando o buscando usuario con email:', email);
-
-    const { data: membresias, error: errorMembresia } = await supabase
+    const { data: membresias } = await supabase
       .from('membresias')
       .select('*')
       .eq('stripe_product_id', productId);
 
     const membresia = membresias?.[0];
-
-    if (!membresia || errorMembresia) {
+    if (!membresia) {
       console.error('❌ Membresía no encontrada:', productId);
       return res.status(404).send('Membresía no encontrada');
     }
@@ -80,41 +77,42 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (!user) {
-      const { data: newUser, error: insertUserError } = await supabase
+      const { data: newUser, error } = await supabase
         .from('users')
         .insert([{ email, rol: 'estudiante' }])
         .select()
         .single();
 
-      if (insertUserError) {
-        console.error('❌ Error al crear usuario:', insertUserError.message);
+      if (error) {
+        console.error('❌ Error al crear usuario:', error.message);
         return res.status(500).send('No se pudo crear el usuario');
       }
 
       user = newUser;
       console.log('✅ Usuario creado:', user.id);
     } else {
-      console.log('👤 Usuario ya existía con ID:', user.id);
+      console.log('👤 Usuario ya existía:', user.id);
     }
 
-    const { error: insertError } = await supabase.from('usuario_membresias').insert([
-      {
-        usuario_id: user.id,
-        membresia_id: membresia.id,
-        horas_disponibles: membresia.horas_semanales,
-      },
-    ]);
+    const { error: insertError } = await supabase
+      .from('usuario_membresias')
+      .insert([
+        {
+          usuario_id: user.id,
+          membresia_id: membresia.id,
+          horas_disponibles: membresia.horas_semanales,
+        },
+      ]);
 
     if (insertError) {
-      console.error('❌ Error al vincular membresía:', insertError.message);
+      console.error('❌ Error al asignar membresía:', insertError.message);
       return res.status(500).send('No se pudo asignar membresía');
     }
 
     console.log('✅ Membresía asignada correctamente.');
   } else {
-    console.log('⚠️ Evento recibido no es checkout.session.completed');
+    console.log('ℹ️ Evento ignorado:', event.type);
   }
 
-  console.log('📦 Fin del flujo de webhook');
   res.status(200).json({ received: true });
 }
