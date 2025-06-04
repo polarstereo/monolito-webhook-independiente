@@ -9,13 +9,16 @@ const app = express();
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
-  // 🚨 Reemplaza esta línea con tu clave real solo para pruebas
+  // 🚨 Hardcoded Stripe Secret Key
   const stripe = new Stripe("sk_test_51RVh53Gh4KFKDlTwH5C31rBIW1qaOGAqn0iT0TV9g0IKQAEg9c1h2ZUbI4a8q2NrBckFEqMPnNbQyFZ8S6TVk4S700OKwwlmMD", {
     apiVersion: '2023-10-16'
   });
 
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  console.log("🔐 STRIPE_WEBHOOK_SECRET =", secret || "undefined");
+  // 🚨 Hardcoded Webhook Signing Secret
+  const secret = "whsec_xjg32IxnE8cfjYPyb955xx2V2UVuA5GM";
+
+  console.log("🔐 Usando STRIPE_SECRET_KEY hardcodeada");
+  console.log("🔐 Usando STRIPE_WEBHOOK_SECRET hardcodeada");
 
   let event;
 
