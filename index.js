@@ -8,6 +8,7 @@ const app = express();
 
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
+console.log("🔥 STRIPE_SECRET_KEY recibido:", process.env.STRIPE_SECRET_KEY || "undefined");
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2023-10-16'
