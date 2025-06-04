@@ -9,7 +9,8 @@ const app = express();
 app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
-  console.log("🔥 STRIPE_SECRET_KEY =", process.env.STRIPE_SECRET_KEY || "undefined");
+  console.log("🌍 TODAS LAS VARIABLES DE ENTORNO:");
+  console.log(process.env); // 👈 Aquí imprimimos todo el entorno
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2023-10-16'
