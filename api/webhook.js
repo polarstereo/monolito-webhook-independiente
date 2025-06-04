@@ -1,47 +1,41 @@
-import Stripe from 'stripe';
 import { buffer } from 'micro';
-import { createClient } from '@supabase/supabase-js';
-
-const stripe = new Stripe("sk_test_TU_CLAVE_AQUI", {
-  apiVersion: '2023-10-16'
-});
-
-const supabase = createClient(
-  "https://TU_PROYECTO.supabase.co",
-  "eyJhbGciOi..." // anon key
-);
+import Stripe from 'stripe';
 
 export const config = {
   api: {
-    bodyParser: false
-  }
+    bodyParser: false,
+  },
 };
+
+const stripe = new Stripe("sk_test_...", {
+  apiVersion: '2023-10-16',
+});
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).send('Method Not Allowed');
+    return res.status(405).end('Method Not Allowed');
   }
 
   const sig = req.headers['stripe-signature'];
-  const secret = "whsec_TU_CLAVE_WEBHOOK";
+  const secret = 'whsec_...';
 
-  let rawBody;
+  let buf;
   try {
-    rawBody = await buffer(req);
+    buf = await buffer(req);
   } catch (err) {
-    return res.status(400).send(`Error reading body: ${err.message}`);
+    console.error('❌ Error reading buffer:', err.message);
+    return res.status(400).send('Invalid body');
   }
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(rawBody, sig, secret);
+    event = stripe.webhooks.constructEvent(buf, sig, secret);
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
+    console.error('❌ Stripe Signature Verification Failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Aquí va la lógica de sesión/membresías como antes...
-  console.log('✅ Webhook verificado correctamente:', event.type);
+  console.log('✅ Evento recibido:', event.type);
 
-  res.status(200).json({ received: true });
+  res.status(200).send('Received');
 }
