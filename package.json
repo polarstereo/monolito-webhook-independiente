@@ -1,16 +1,13 @@
 {
   "name": "monolito-webhook",
   "version": "1.0.0",
-   "type": "module",
-  "dependencies": {
-  "micro": "^9.3.4"
-}
-
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
+    "micro": "^9.3.4",
     "@supabase/supabase-js": "^2.49.9",
     "express": "^5.1.0",
     "stripe": "^18.2.1"
