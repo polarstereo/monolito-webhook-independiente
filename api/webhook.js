@@ -12,9 +12,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
 
+// ✅ Usa la clave service_role en backend
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -45,15 +46,13 @@ export default async function handler(req, res) {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data?.object;
-    console.log("🧾 session completa:");
-    console.dir(session, { depth: null });
 
     const email = session?.customer_details?.email;
     const productId = session?.client_reference_id;
 
     console.log("📩 Datos recibidos:");
     console.log(" - Email:", email);
-    console.log(" - Producto ID (desde client_reference_id):", productId);
+    console.log(" - Producto ID:", productId);
 
     if (!email || !productId) {
       console.error('❌ Faltan datos del usuario o producto');
