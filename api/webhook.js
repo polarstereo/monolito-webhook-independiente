@@ -41,7 +41,8 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log('✅ Evento recibido:', event.type);
+  console.log('✅ Evento completo recibido:', JSON.stringify(event, null, 2));
+
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
