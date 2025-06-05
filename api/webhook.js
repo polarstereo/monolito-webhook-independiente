@@ -109,6 +109,24 @@ export default async function handler(req, res) {
       }
     } else {
       console.log('Usuario ya existia en tabla users:', user.id);
+
+      const { data: authUser, error: authLookupError } = await supabase.auth.getUserByEmail(email);
+
+      if (!authUser?.user) {
+        console.log('Usuario NO existe en auth.users. Creando ahora:', email);
+        const { error: authError } = await supabase.auth.admin.createUser({
+          email,
+          email_confirm: true,
+        });
+
+        if (authError && authError.message !== 'User already registered') {
+          console.error('Error al crear usuario en auth.users:', authError.message);
+        } else {
+          console.log('Usuario creado en auth.users correctamente');
+        }
+      } else {
+        console.log('Usuario ya existe también en auth.users');
+      }
     }
 
     const { error: insertError } = await supabase
